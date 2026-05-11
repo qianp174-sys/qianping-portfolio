@@ -1,78 +1,47 @@
 // COMPONENT: AboutSection — S型路径小人行走动效
 // Design: Neo-Constructivist Minimalism
 // - SVG S-shaped path with dashed stroke
-// - Walking character animated along path
-// - Click node to open detail modal (not sidebar card)
+// - Walking character animated along path with smooth animation
+// - Click node to see character walk to that node
+// - Visited path segments change from dashed to solid
 // - Modal has close button (×) in top-right
 // - Modal supports tabs for nodes with multiple content
 // ============================================================
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { journeyNodes } from "@/lib/data";
 
-// S-shaped path definition (compressed for one-screen display)
-const S_PATH_D = "M 60,420 C 60,360 200,330 200,280 C 200,230 60,200 60,150 C 60,110 180,80 280,60";
+// 更宽的 SVG 视图，让节点标签有空间展示
+const SVG_WIDTH = 500;
+const SVG_HEIGHT = 500;
 
-// Node positions along the path (t values 0..1)
-const NODE_T_VALUES = [0, 0.25, 0.5, 0.75, 1.0];
-
-// Precomputed positions along the S-path (compressed)
+// Node positions (4 nodes matching journeyNodes data) - 调整位置让标签有足够空间
 const NODE_POSITIONS = [
-  { x: 60, y: 420 },
-  { x: 180, y: 310 },
-  { x: 120, y: 210 },
-  { x: 90, y: 120 },
-  { x: 280, y: 60 },
+  { x: 80, y: 420, labelPos: "right" as const },   // 在校经历 - 左下
+  { x: 250, y: 320, labelPos: "right" as const },  // 洞察 - 中右
+  { x: 100, y: 200, labelPos: "right" as const },  // 效率 - 中左
+  { x: 380, y: 80, labelPos: "left" as const },    // 目标 - 右上
 ];
 
-// Interpolate position along path
-function interpolatePosition(t: number) {
-  const waypoints = [
-    { t: 0, x: 60, y: 420 },
-    { t: 0.1, x: 100, y: 380 },
-    { t: 0.2, x: 150, y: 340 },
-    { t: 0.25, x: 180, y: 310 },
-    { t: 0.3, x: 190, y: 290 },
-    { t: 0.4, x: 180, y: 250 },
-    { t: 0.5, x: 120, y: 210 },
-    { t: 0.6, x: 100, y: 170 },
-    { t: 0.7, x: 90, y: 140 },
-    { t: 0.75, x: 90, y: 120 },
-    { t: 0.85, x: 140, y: 80 },
-    { t: 0.9, x: 200, y: 65 },
-    { t: 1.0, x: 280, y: 60 },
-  ];
-
-  if (t <= 0) return waypoints[0];
-  if (t >= 1) return waypoints[waypoints.length - 1];
-
-  for (let i = 0; i < waypoints.length - 1; i++) {
-    if (waypoints[i].t <= t && t <= waypoints[i + 1].t) {
-      const ratio = (t - waypoints[i].t) / (waypoints[i + 1].t - waypoints[i].t);
-      return {
-        x: waypoints[i].x + (waypoints[i + 1].x - waypoints[i].x) * ratio,
-        y: waypoints[i].y + (waypoints[i + 1].y - waypoints[i].y) * ratio,
-      };
-    }
-  }
-
-  return waypoints[waypoints.length - 1];
-}
-
-// Walking Character SVG
-function WalkingCharacter({ x, y }: { x: number; y: number }) {
+// Walking Character SVG - 走路时动画更明显，停下时静止
+function WalkingCharacter({ x, y, isWalking }: { x: number; y: number; isWalking: boolean }) {
   const [time, setTime] = useState(0);
+  
   useEffect(() => {
-    const interval = setInterval(() => setTime((t) => t + 0.05), 50);
+    if (!isWalking) return;
+    const interval = setInterval(() => setTime((t) => t + 0.15), 50);
     return () => clearInterval(interval);
-  }, []);
+  }, [isWalking]);
 
-  const armAngle = Math.sin(time) * 15;
-  const legAngle = Math.sin(time) * 20;
+  const armAngle = isWalking ? Math.sin(time) * 25 : 0;
+  const legAngle = isWalking ? Math.sin(time) * 30 : 0;
 
   return (
-    <g transform={`translate(${x}, ${y})`}>
+    <motion.g
+      animate={{ x, y }}
+      transition={{ duration: 1.5, ease: "easeInOut" }}
+    >
       {/* Head */}
       <circle cx="0" cy="-25" r="8" fill="#1A1A1A" />
       {/* Body */}
@@ -104,7 +73,7 @@ function WalkingCharacter({ x, y }: { x: number; y: number }) {
       {/* Mint green hat/accent */}
       <circle cx="0" cy="-31" r="4" fill="#C7F9CC" />
       <circle cx="0" cy="-31" r="2" fill="#52b788" />
-    </g>
+    </motion.g>
   );
 }
 
@@ -275,19 +244,42 @@ function DetailModal({ node, onClose }: { node: any; onClose: () => void }) {
 // Main AboutSection Component
 export default function AboutSection() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [currentT, setCurrentT] = useState(0);
-  const [lastT, setLastT] = useState(0);
+  const [currentNodeIndex, setCurrentNodeIndex] = useState(0);
+  const [isWalking, setIsWalking] = useState(false);
+  const [visitedSegments, setVisitedSegments] = useState<Set<number>>(new Set());
 
   const selectedNode = journeyNodes.find((n) => n.id === selectedNodeId);
 
   const moveToNode = useCallback((nodeIndex: number) => {
-    const targetT = NODE_T_VALUES[nodeIndex];
-    setLastT(currentT);
-    setCurrentT(targetT);
-    setSelectedNodeId(journeyNodes[nodeIndex].id);
-  }, [currentT]);
+    if (nodeIndex === currentNodeIndex) {
+      // 如果点击当前节点，直接打开详情
+      setSelectedNodeId(journeyNodes[nodeIndex].id);
+      return;
+    }
+    
+    // 开始行走动画
+    setIsWalking(true);
+    
+    // 标记经过的路段为已访问（变实线）
+    const newVisited = new Set(visitedSegments);
+    const start = Math.min(currentNodeIndex, nodeIndex);
+    const end = Math.max(currentNodeIndex, nodeIndex);
+    for (let i = start; i < end; i++) {
+      newVisited.add(i);
+    }
+    setVisitedSegments(newVisited);
+    
+    // 更新当前节点
+    setCurrentNodeIndex(nodeIndex);
+    
+    // 动画结束后停止行走并打开详情
+    setTimeout(() => {
+      setIsWalking(false);
+      setSelectedNodeId(journeyNodes[nodeIndex].id);
+    }, 1500);
+  }, [currentNodeIndex, visitedSegments]);
 
-  const charPos = interpolatePosition(currentT);
+  const charPos = NODE_POSITIONS[currentNodeIndex];
 
   return (
     <section className="w-full min-h-screen bg-white py-16 sm:py-20 lg:py-24 flex flex-col justify-center">
@@ -333,8 +325,8 @@ export default function AboutSection() {
           className="mb-8 sm:mb-12 flex justify-center px-4"
         >
           <svg
-            viewBox="0 0 320 480"
-            className="w-full max-w-md sm:max-w-lg"
+            viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
+            className="w-full max-w-xl sm:max-w-2xl"
             preserveAspectRatio="xMidYMid meet"
           >
             {/* Background dots */}
@@ -343,52 +335,108 @@ export default function AboutSection() {
                 <circle cx="10" cy="10" r="1" fill="#f0f0f0" />
               </pattern>
             </defs>
-            <rect width="320" height="480" fill="url(#dots)" />
+            <rect width={SVG_WIDTH} height={SVG_HEIGHT} fill="url(#dots)" />
 
-            {/* S-shaped path */}
-            <path
-              d={S_PATH_D}
-              stroke="#C7F9CC"
-              strokeWidth="3"
-              fill="none"
-              strokeDasharray="5,5"
-              strokeLinecap="round"
-            />
+            {/* Path segments - 分段渲染，已访问的变实线且颜色加深 */}
+            {[0, 1, 2].map((segmentIndex) => {
+              const isVisited = visitedSegments.has(segmentIndex);
+              const segmentPaths = [
+                `M ${NODE_POSITIONS[0].x},${NODE_POSITIONS[0].y} C 150,380 300,360 ${NODE_POSITIONS[1].x},${NODE_POSITIONS[1].y}`,
+                `M ${NODE_POSITIONS[1].x},${NODE_POSITIONS[1].y} C 200,280 50,260 ${NODE_POSITIONS[2].x},${NODE_POSITIONS[2].y}`,
+                `M ${NODE_POSITIONS[2].x},${NODE_POSITIONS[2].y} C 150,140 280,100 ${NODE_POSITIONS[3].x},${NODE_POSITIONS[3].y}`,
+              ];
+              
+              return (
+                <motion.path
+                  key={segmentIndex}
+                  d={segmentPaths[segmentIndex]}
+                  stroke={isVisited ? "#52B788" : "#C7F9CC"}
+                  strokeWidth={isVisited ? 4 : 3}
+                  fill="none"
+                  strokeDasharray={isVisited ? "0" : "8,8"}
+                  strokeLinecap="round"
+                  initial={false}
+                  animate={{
+                    stroke: isVisited ? "#52B788" : "#C7F9CC",
+                    strokeWidth: isVisited ? 4 : 3,
+                    strokeDasharray: isVisited ? "0" : "8,8",
+                  }}
+                  transition={{ duration: 0.5 }}
+                />
+              );
+            })}
 
-            {/* Nodes */}
+            {/* Nodes with labels */}
             {journeyNodes.map((node, idx) => {
               const pos = NODE_POSITIONS[idx];
               const isSelected = selectedNodeId === node.id;
+              const isCurrent = currentNodeIndex === idx;
+              const isVisited = idx <= currentNodeIndex;
+              const labelPos = pos.labelPos;
 
               return (
-                <g key={node.id}>
+                <g key={node.id} className="cursor-pointer" onClick={() => moveToNode(idx)}>
+                  {/* Node outer glow for current */}
+                  {isCurrent && (
+                    <circle
+                      cx={pos.x}
+                      cy={pos.y}
+                      r={28}
+                      fill="none"
+                      stroke={node.color}
+                      strokeWidth="2"
+                      opacity="0.3"
+                    />
+                  )}
+                  
                   {/* Node circle */}
                   <circle
                     cx={pos.x}
                     cy={pos.y}
-                    r={isSelected ? 20 : 16}
+                    r={isCurrent ? 22 : isSelected ? 20 : 18}
                     fill="white"
-                    stroke={isSelected ? node.color : "#C7F9CC"}
-                    strokeWidth={isSelected ? 3 : 2}
-                    className="cursor-pointer transition-all"
-                    onClick={() => moveToNode(idx)}
+                    stroke={isVisited ? node.color : "#C7F9CC"}
+                    strokeWidth={isCurrent ? 4 : isSelected ? 3 : 2}
+                    className="transition-all duration-300"
                   />
+                  
                   {/* Node icon */}
                   <text
                     x={pos.x}
-                    y={pos.y + 6}
+                    y={pos.y + 7}
                     textAnchor="middle"
-                    className="text-xl cursor-pointer select-none"
-                    onClick={() => moveToNode(idx)}
+                    className="text-2xl select-none pointer-events-none"
                   >
                     {node.icon}
                   </text>
+                  
+                  {/* Node label */}
+                  <g transform={`translate(${labelPos === 'right' ? pos.x + 30 : pos.x - 30}, ${pos.y})`}>
+                    <text
+                      x="0"
+                      y="-6"
+                      textAnchor={labelPos === 'right' ? 'start' : 'end'}
+                      className="text-sm font-bold fill-[#1A1A1A]"
+                      style={{ fontFamily: "'Syne', sans-serif" }}
+                    >
+                      {node.title}
+                    </text>
+                    <text
+                      x="0"
+                      y="10"
+                      textAnchor={labelPos === 'right' ? 'start' : 'end'}
+                      className="text-xs fill-gray-500"
+                      style={{ fontFamily: "'DM Sans', sans-serif" }}
+                    >
+                      {node.year} · {node.subtitle}
+                    </text>
+                  </g>
                 </g>
               );
             })}
 
             {/* Walking character */}
-            <WalkingCharacter x={charPos.x} y={charPos.y} />
+            <WalkingCharacter x={charPos.x} y={charPos.y} isWalking={isWalking} />
           </svg>
         </motion.div>
 
@@ -400,20 +448,28 @@ export default function AboutSection() {
           viewport={{ once: true }}
           className="flex flex-nowrap gap-2 sm:gap-3 overflow-x-auto px-4 pb-2 justify-center"
         >
-          {journeyNodes.map((node, idx) => (
-            <button
-              key={node.id}
-              onClick={() => moveToNode(idx)}
-              className={`px-3 sm:px-4 py-2 rounded-sm text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
-                selectedNodeId === node.id
-                  ? 'bg-[#C7F9CC] text-[#1A1A1A] shadow-md'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-              style={{ fontFamily: "'DM Sans', sans-serif" }}
-            >
-              {node.icon} {node.title}
-            </button>
-          ))}
+          {journeyNodes.map((node, idx) => {
+            const isCurrent = currentNodeIndex === idx;
+            const isVisited = idx <= currentNodeIndex;
+            
+            return (
+              <button
+                key={node.id}
+                onClick={() => moveToNode(idx)}
+                disabled={isWalking}
+                className={`px-3 sm:px-4 py-2 rounded-sm text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
+                  isCurrent
+                    ? 'bg-[#52B788] text-white shadow-md'
+                    : isVisited
+                    ? 'bg-[#C7F9CC] text-[#1A1A1A]'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                } ${isWalking ? 'opacity-50 cursor-not-allowed' : ''}`}
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              >
+                {node.icon} {node.title}
+              </button>
+            );
+          })}
         </motion.div>
       </div>
 
