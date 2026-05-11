@@ -24,56 +24,115 @@ const NODE_POSITIONS = [
   { x: 380, y: 80, labelPos: "left" as const },    // 目标 - 右上
 ];
 
-// Walking Character SVG - 走路时动画更明显，停下时静止
-function WalkingCharacter({ x, y, isWalking }: { x: number; y: number; isWalking: boolean }) {
-  const [time, setTime] = useState(0);
-  
-  useEffect(() => {
-    if (!isWalking) return;
-    const interval = setInterval(() => setTime((t) => t + 0.15), 50);
-    return () => clearInterval(interval);
-  }, [isWalking]);
+// 路径段定义
+const PATH_SEGMENTS = [
+  `M ${NODE_POSITIONS[0].x},${NODE_POSITIONS[0].y} C 150,380 300,360 ${NODE_POSITIONS[1].x},${NODE_POSITIONS[1].y}`,
+  `M ${NODE_POSITIONS[1].x},${NODE_POSITIONS[1].y} C 200,280 50,260 ${NODE_POSITIONS[2].x},${NODE_POSITIONS[2].y}`,
+  `M ${NODE_POSITIONS[2].x},${NODE_POSITIONS[2].y} C 150,140 280,100 ${NODE_POSITIONS[3].x},${NODE_POSITIONS[3].y}`,
+];
 
-  const armAngle = isWalking ? Math.sin(time) * 25 : 0;
-  const legAngle = isWalking ? Math.sin(time) * 30 : 0;
+// 获取路径上的点（用于沿路径移动）
+function getPointOnPath(pathD: string, t: number): { x: number; y: number; angle: number } {
+  if (typeof document === 'undefined') return { x: 0, y: 0, angle: 0 };
+  
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', pathD);
+  const length = path.getTotalLength();
+  const point = path.getPointAtLength(t * length);
+  
+  // 计算切线角度
+  const delta = 0.01;
+  const point2 = path.getPointAtLength(Math.min((t + delta) * length, length));
+  const angle = Math.atan2(point2.y - point.y, point2.x - point.x) * (180 / Math.PI);
+  
+  return { x: point.x, y: point.y, angle };
+}
+
+// Car SVG Component - 小汽车
+function CarCharacter({ 
+  fromNode, 
+  toNode, 
+  progress, 
+  isMoving,
+  direction 
+}: { 
+  fromNode: number; 
+  toNode: number; 
+  progress: number;
+  isMoving: boolean;
+  direction: 'forward' | 'backward';
+}) {
+  const [position, setPosition] = useState({ x: NODE_POSITIONS[0].x, y: NODE_POSITIONS[0].y, angle: 0 });
+  const [wheelRotation, setWheelRotation] = useState(0);
+  
+  // 车轮转动动画
+  useEffect(() => {
+    if (!isMoving) return;
+    const interval = setInterval(() => {
+      setWheelRotation(r => r + (direction === 'forward' ? 15 : -15));
+    }, 30);
+    return () => clearInterval(interval);
+  }, [isMoving, direction]);
+
+  // 沿路径移动
+  useEffect(() => {
+    if (!isMoving) {
+      // 停在当前节点
+      setPosition({ x: NODE_POSITIONS[toNode].x, y: NODE_POSITIONS[toNode].y, angle: position.angle });
+      return;
+    }
+
+    // 构建完整路径
+    const start = Math.min(fromNode, toNode);
+    const end = Math.max(fromNode, toNode);
+    const fullPath = PATH_SEGMENTS.slice(start, end).join(' ');
+    
+    if (!fullPath) return;
+
+    const actualProgress = direction === 'forward' ? progress : 1 - progress;
+    const point = getPointOnPath(fullPath, actualProgress);
+    
+    // 如果是往回走，角度需要翻转
+    const adjustedAngle = direction === 'backward' ? point.angle + 180 : point.angle;
+    
+    setPosition({ x: point.x, y: point.y, angle: adjustedAngle });
+  }, [fromNode, toNode, progress, isMoving, direction, position.angle]);
 
   return (
-    <motion.g
-      animate={{ x, y }}
-      transition={{ duration: 1.5, ease: "easeInOut" }}
-    >
-      {/* Head */}
-      <circle cx="0" cy="-25" r="8" fill="#1A1A1A" />
-      {/* Body */}
-      <line x1="0" y1="-17" x2="0" y2="5" stroke="#1A1A1A" strokeWidth="3" strokeLinecap="round" />
-      {/* Left arm */}
-      <line
-        x1="0" y1="-8"
-        x2={-10 + armAngle * 0.5} y2={-3 + Math.abs(armAngle) * 0.3}
-        stroke="#1A1A1A" strokeWidth="2.5" strokeLinecap="round"
-      />
-      {/* Right arm */}
-      <line
-        x1="0" y1="-8"
-        x2={10 - armAngle * 0.5} y2={-3 + Math.abs(armAngle) * 0.3}
-        stroke="#1A1A1A" strokeWidth="2.5" strokeLinecap="round"
-      />
-      {/* Left leg */}
-      <line
-        x1="0" y1="5"
-        x2={-7 - legAngle * 0.5} y2={20 + Math.abs(legAngle) * 0.2}
-        stroke="#1A1A1A" strokeWidth="2.5" strokeLinecap="round"
-      />
-      {/* Right leg */}
-      <line
-        x1="0" y1="5"
-        x2={7 + legAngle * 0.5} y2={20 + Math.abs(legAngle) * 0.2}
-        stroke="#1A1A1A" strokeWidth="2.5" strokeLinecap="round"
-      />
-      {/* Mint green hat/accent */}
-      <circle cx="0" cy="-31" r="4" fill="#C7F9CC" />
-      <circle cx="0" cy="-31" r="2" fill="#52b788" />
-    </motion.g>
+    <g transform={`translate(${position.x}, ${position.y}) rotate(${position.angle})`}>
+      {/* 汽车主体 */}
+      <g transform="translate(-20, -12)">
+        {/* 车身底部 */}
+        <rect x="0" y="8" width="40" height="12" rx="3" fill="#52B788" />
+        
+        {/* 车身顶部（车厢） */}
+        <path d="M 8,8 L 12,0 L 30,0 L 34,8 Z" fill="#40916C" />
+        
+        {/* 车窗 */}
+        <path d="M 13,7 L 16,2 L 22,2 L 22,7 Z" fill="#B7E4C7" />
+        <path d="M 24,7 L 24,2 L 30,2 L 32,7 Z" fill="#B7E4C7" />
+        
+        {/* 车灯 */}
+        <rect x="36" y="10" width="4" height="4" rx="1" fill="#FFE066" />
+        <rect x="0" y="10" width="3" height="3" rx="1" fill="#FF6B6B" />
+        
+        {/* 前轮 */}
+        <g transform={`translate(10, 20) rotate(${wheelRotation})`}>
+          <circle cx="0" cy="0" r="5" fill="#1A1A1A" />
+          <circle cx="0" cy="0" r="2" fill="#666" />
+          <line x1="-3" y1="0" x2="3" y2="0" stroke="#666" strokeWidth="1" />
+          <line x1="0" y1="-3" x2="0" y2="3" stroke="#666" strokeWidth="1" />
+        </g>
+        
+        {/* 后轮 */}
+        <g transform={`translate(30, 20) rotate(${wheelRotation})`}>
+          <circle cx="0" cy="0" r="5" fill="#1A1A1A" />
+          <circle cx="0" cy="0" r="2" fill="#666" />
+          <line x1="-3" y1="0" x2="3" y2="0" stroke="#666" strokeWidth="1" />
+          <line x1="0" y1="-3" x2="0" y2="3" stroke="#666" strokeWidth="1" />
+        </g>
+      </g>
+    </g>
   );
 }
 
@@ -245,41 +304,91 @@ function DetailModal({ node, onClose }: { node: any; onClose: () => void }) {
 export default function AboutSection() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [currentNodeIndex, setCurrentNodeIndex] = useState(0);
-  const [isWalking, setIsWalking] = useState(false);
+  const [targetNodeIndex, setTargetNodeIndex] = useState(0);
+  const [isMoving, setIsMoving] = useState(false);
+  const [moveProgress, setMoveProgress] = useState(0);
+  const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
   const [visitedSegments, setVisitedSegments] = useState<Set<number>>(new Set());
 
   const selectedNode = journeyNodes.find((n) => n.id === selectedNodeId);
 
   const moveToNode = useCallback((nodeIndex: number) => {
-    if (nodeIndex === currentNodeIndex) {
-      // 如果点击当前节点，直接打开详情
-      setSelectedNodeId(journeyNodes[nodeIndex].id);
+    if (nodeIndex === currentNodeIndex || isMoving) {
+      // 如果点击当前节点或正在移动中，直接打开详情
+      if (nodeIndex === currentNodeIndex) {
+        setSelectedNodeId(journeyNodes[nodeIndex].id);
+      }
       return;
     }
     
-    // 开始行走动画
-    setIsWalking(true);
+    const isForward = nodeIndex > currentNodeIndex;
+    setDirection(isForward ? 'forward' : 'backward');
+    setTargetNodeIndex(nodeIndex);
+    setIsMoving(true);
+    setMoveProgress(0);
     
-    // 标记经过的路段为已访问（变实线）
-    const newVisited = new Set(visitedSegments);
-    const start = Math.min(currentNodeIndex, nodeIndex);
-    const end = Math.max(currentNodeIndex, nodeIndex);
-    for (let i = start; i < end; i++) {
-      newVisited.add(i);
-    }
-    setVisitedSegments(newVisited);
+    // 动画进度更新
+    const duration = 1500; // 1.5秒
+    const startTime = Date.now();
+    const fromNode = currentNodeIndex;
     
-    // 更新当前节点
-    setCurrentNodeIndex(nodeIndex);
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // 使用 easeInOutCubic 缓动函数让运动更自然
+      const eased = progress < 0.5
+        ? 4 * progress * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+      
+      setMoveProgress(eased);
+      
+      // 根据移动方向，实时更新已访问的路段
+      if (isForward) {
+        // 向前走：经过的路段变实线
+        const newVisited = new Set(visitedSegments);
+        const segmentsCrossed = Math.floor(eased * (nodeIndex - fromNode));
+        for (let i = fromNode; i < fromNode + segmentsCrossed; i++) {
+          newVisited.add(i);
+        }
+        setVisitedSegments(newVisited);
+      } else {
+        // 向后走：离开的路段变虚线
+        const newVisited = new Set(visitedSegments);
+        const segmentsLeft = Math.floor(eased * (fromNode - nodeIndex));
+        for (let i = fromNode - 1; i >= fromNode - segmentsLeft; i--) {
+          newVisited.delete(i);
+        }
+        setVisitedSegments(newVisited);
+      }
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // 动画结束
+        setIsMoving(false);
+        setCurrentNodeIndex(nodeIndex);
+        setSelectedNodeId(journeyNodes[nodeIndex].id);
+        
+        // 确保最终状态正确
+        if (isForward) {
+          const finalVisited = new Set(visitedSegments);
+          for (let i = fromNode; i < nodeIndex; i++) {
+            finalVisited.add(i);
+          }
+          setVisitedSegments(finalVisited);
+        } else {
+          const finalVisited = new Set(visitedSegments);
+          for (let i = fromNode - 1; i >= nodeIndex; i--) {
+            finalVisited.delete(i);
+          }
+          setVisitedSegments(finalVisited);
+        }
+      }
+    };
     
-    // 动画结束后停止行走并打开详情
-    setTimeout(() => {
-      setIsWalking(false);
-      setSelectedNodeId(journeyNodes[nodeIndex].id);
-    }, 1500);
-  }, [currentNodeIndex, visitedSegments]);
-
-  const charPos = NODE_POSITIONS[currentNodeIndex];
+    requestAnimationFrame(animate);
+  }, [currentNodeIndex, isMoving, visitedSegments]);
 
   return (
     <section className="w-full min-h-screen bg-white py-16 sm:py-20 lg:py-24 flex flex-col justify-center">
@@ -370,8 +479,9 @@ export default function AboutSection() {
             {journeyNodes.map((node, idx) => {
               const pos = NODE_POSITIONS[idx];
               const isSelected = selectedNodeId === node.id;
-              const isCurrent = currentNodeIndex === idx;
-              const isVisited = idx <= currentNodeIndex;
+              const isCurrent = currentNodeIndex === idx && !isMoving;
+              // 节点被访问过 = 该节点之前的路段已访问 或者是起点
+              const isVisited = visitedSegments.has(idx - 1) || idx === 0;
               const labelPos = pos.labelPos;
 
               return (
@@ -435,8 +545,14 @@ export default function AboutSection() {
               );
             })}
 
-            {/* Walking character */}
-            <WalkingCharacter x={charPos.x} y={charPos.y} isWalking={isWalking} />
+            {/* Car character */}
+            <CarCharacter 
+              fromNode={currentNodeIndex} 
+              toNode={targetNodeIndex} 
+              progress={moveProgress}
+              isMoving={isMoving}
+              direction={direction}
+            />
           </svg>
         </motion.div>
 
@@ -449,21 +565,21 @@ export default function AboutSection() {
           className="flex flex-nowrap gap-2 sm:gap-3 overflow-x-auto px-4 pb-2 justify-center"
         >
           {journeyNodes.map((node, idx) => {
-            const isCurrent = currentNodeIndex === idx;
-            const isVisited = idx <= currentNodeIndex;
+            const isCurrent = currentNodeIndex === idx && !isMoving;
+            const isVisited = visitedSegments.has(idx - 1) || idx === 0;
             
             return (
               <button
                 key={node.id}
                 onClick={() => moveToNode(idx)}
-                disabled={isWalking}
+                disabled={isMoving}
                 className={`px-3 sm:px-4 py-2 rounded-sm text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
                   isCurrent
                     ? 'bg-[#52B788] text-white shadow-md'
                     : isVisited
                     ? 'bg-[#C7F9CC] text-[#1A1A1A]'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                } ${isWalking ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${isMoving ? 'opacity-50 cursor-not-allowed' : ''}`}
                 style={{ fontFamily: "'DM Sans', sans-serif" }}
               >
                 {node.icon} {node.title}
