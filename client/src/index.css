@@ -1,13 +1,12 @@
+/*
+ * 朱倩萍个人品牌网站 — 全局样式
+ * 设计理念：清新薄荷极简主义
+ * 主色：薄荷绿 oklch(0.78 0.10 168) | 背景：近白 oklch(0.985 0.008 168)
+ * 字体：Noto Serif SC (标题) + Noto Sans SC (正文) + DM Sans (英文装饰)
+ */
+
 @import "tailwindcss";
 @import "tw-animate-css";
-
-/* ============================================================
-   DESIGN SYSTEM: Neo-Constructivist Minimalism
-   - Primary: Mint Green #C7F9CC (accent only)
-   - Dark: Geek Black #1A1A1A
-   - Light: Breath White #F8F9FA
-   - Fonts: Syne (headings) + DM Sans (body) + JetBrains Mono (code/numbers)
-   ============================================================ */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -35,57 +34,77 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-mint: var(--mint);
-  --color-geek-black: var(--geek-black);
+  --color-mint-50: oklch(0.985 0.012 168);
+  --color-mint-100: oklch(0.96 0.025 168);
+  --color-mint-200: oklch(0.92 0.045 168);
+  --color-mint-300: oklch(0.85 0.075 168);
+  --color-mint-400: oklch(0.78 0.10 168);
+  --color-mint-500: oklch(0.70 0.12 168);
+  --color-mint-600: oklch(0.60 0.13 168);
+  --color-mint-700: oklch(0.48 0.11 168);
+  --color-mint-800: oklch(0.35 0.08 168);
+  --color-mint-900: oklch(0.25 0.06 168);
 }
 
 :root {
-  --radius: 0.5rem;
-  --mint: #C7F9CC;
-  --mint-dark: #52b788;
-  --geek-black: #1A1A1A;
-  --breath-white: #F8F9FA;
-
-  --background: oklch(0.99 0.002 120);
-  --foreground: oklch(0.12 0.005 120);
+  --radius: 0.75rem;
+  /* Mint green primary */
+  --primary: oklch(0.60 0.13 168);
+  --primary-foreground: oklch(0.99 0 0);
+  /* Backgrounds */
+  --background: oklch(0.99 0.004 168);
+  --foreground: oklch(0.22 0.02 168);
+  /* Cards */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.12 0.005 120);
+  --card-foreground: oklch(0.22 0.02 168);
+  /* Popover */
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.12 0.005 120);
-  --primary: oklch(0.88 0.08 145);
-  --primary-foreground: oklch(0.12 0.005 120);
-  --secondary: oklch(0.96 0.004 120);
-  --secondary-foreground: oklch(0.3 0.01 120);
-  --muted: oklch(0.96 0.004 120);
-  --muted-foreground: oklch(0.55 0.01 120);
-  --accent: oklch(0.88 0.08 145);
-  --accent-foreground: oklch(0.12 0.005 120);
+  --popover-foreground: oklch(0.22 0.02 168);
+  /* Secondary */
+  --secondary: oklch(0.96 0.020 168);
+  --secondary-foreground: oklch(0.40 0.06 168);
+  /* Muted */
+  --muted: oklch(0.96 0.015 168);
+  --muted-foreground: oklch(0.55 0.04 168);
+  /* Accent */
+  --accent: oklch(0.92 0.040 168);
+  --accent-foreground: oklch(0.35 0.08 168);
+  /* Destructive */
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.005 120);
-  --input: oklch(0.92 0.005 120);
-  --ring: oklch(0.88 0.08 145);
-  --sidebar: oklch(0.99 0.002 120);
-  --sidebar-foreground: oklch(0.12 0.005 120);
-  --sidebar-accent: oklch(0.88 0.08 145);
-  --sidebar-accent-foreground: oklch(0.12 0.005 120);
-  --sidebar-border: oklch(0.92 0.005 120);
-  --sidebar-ring: oklch(0.88 0.08 145);
+  /* Border / Input */
+  --border: oklch(0.90 0.020 168);
+  --input: oklch(0.90 0.020 168);
+  --ring: oklch(0.60 0.13 168);
+  /* Sidebar */
+  --sidebar: oklch(0.985 0.012 168);
+  --sidebar-foreground: oklch(0.22 0.02 168);
+  --sidebar-primary: oklch(0.60 0.13 168);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.92 0.040 168);
+  --sidebar-accent-foreground: oklch(0.35 0.08 168);
+  --sidebar-border: oklch(0.90 0.020 168);
+  --sidebar-ring: oklch(0.60 0.13 168);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Noto Serif SC', 'SimSun', serif;
+  }
+  .font-display {
     font-family: 'DM Sans', sans-serif;
-  }
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Syne', sans-serif;
-  }
-  .font-mono, code, pre {
-    font-family: 'JetBrains Mono', monospace;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -122,143 +141,91 @@
       max-width: 1280px;
     }
   }
-}
 
-/* ============================================================
-   CUSTOM UTILITIES
-   ============================================================ */
+  /* Typewriter cursor */
+  .typewriter-cursor::after {
+    content: '|';
+    animation: blink 1s step-end infinite;
+    color: oklch(0.60 0.13 168);
+    margin-left: 2px;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
 
-/* Mint underline hover effect */
-.mint-underline {
-  position: relative;
-  display: inline-block;
-}
-.mint-underline::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background-color: #C7F9CC;
-  transition: width 0.3s ease;
-}
-.mint-underline:hover::after {
-  width: 100%;
-}
+  /* Mint gradient backgrounds */
+  .bg-mint-gradient {
+    background: linear-gradient(180deg, oklch(0.96 0.025 168) 0%, oklch(0.99 0.004 168) 100%);
+  }
+  .bg-hero-gradient {
+    background: linear-gradient(135deg, oklch(0.97 0.020 168) 0%, oklch(0.99 0.008 168) 60%, oklch(1 0 0) 100%);
+  }
 
-/* Reveal animation */
-.reveal {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-}
-.reveal.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
+  /* Card hover effect */
+  .card-hover {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px oklch(0.60 0.13 168 / 0.15);
+  }
 
-/* Grid background */
-.grid-bg {
-  background-image:
-    linear-gradient(rgba(26,26,26,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(26,26,26,0.04) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
+  /* Section fade-in animation */
+  .fade-in-up {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .fade-in-up.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
 
-/* Dot grid */
-.dot-grid {
-  background-image: radial-gradient(circle, rgba(26,26,26,0.08) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
+  /* Mint left border card */
+  .card-mint-border {
+    border-left: 3px solid oklch(0.60 0.13 168);
+  }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #F8F9FA;
-}
-::-webkit-scrollbar-thumb {
-  background: #C7F9CC;
-  border-radius: 3px;
-}
+  /* Dashed road path */
+  .road-path {
+    stroke-dasharray: 12 8;
+    stroke-dashoffset: 0;
+    animation: dash-flow 2s linear infinite;
+  }
+  @keyframes dash-flow {
+    to { stroke-dashoffset: -20; }
+  }
 
-/* Card flip */
-.card-flip-container {
-  perspective: 1000px;
-}
-.card-flip-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-  transform-style: preserve-3d;
-}
-.card-flip-container.flipped .card-flip-inner {
-  transform: rotateY(180deg);
-}
-.card-flip-front,
-.card-flip-back {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-.card-flip-back {
-  transform: rotateY(180deg);
-}
+  /* Skill card */
+  .skill-card {
+    background: white;
+    border: 1px solid oklch(0.90 0.020 168);
+    border-radius: 1rem;
+    transition: all 0.3s ease;
+  }
+  .skill-card:hover {
+    border-color: oklch(0.60 0.13 168);
+    box-shadow: 0 8px 24px oklch(0.60 0.13 168 / 0.12);
+    transform: translateY(-2px);
+  }
 
-/* Number counter */
-.counter-number {
-  font-family: 'JetBrains Mono', monospace;
-  font-variant-numeric: tabular-nums;
-}
+  /* PRD drawer */
+  .prd-section {
+    border-left: 2px solid oklch(0.85 0.075 168);
+    padding-left: 1.5rem;
+    margin-bottom: 2rem;
+  }
 
-/* SOP tooltip */
-.sop-tooltip {
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(4px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-.sop-step:hover .sop-tooltip {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
-}
-
-/* Walking character animation */
-@keyframes walk-cycle {
-  0%, 100% { transform: scaleY(1); }
-  50% { transform: scaleY(0.95); }
-}
-.character-walking {
-  animation: walk-cycle 0.4s ease-in-out infinite;
-}
-
-/* Node pulse */
-@keyframes node-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(199, 249, 204, 0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(199, 249, 204, 0); }
-}
-.node-pulse {
-  animation: node-pulse 2s ease-in-out infinite;
-}
-
-/* Smooth scroll */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Page transition */
-.page-enter {
-  opacity: 0;
-  transform: scale(0.98);
-}
-.page-enter-active {
-  opacity: 1;
-  transform: scale(1);
-  transition: opacity 0.4s ease, transform 0.4s ease;
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: oklch(0.96 0.015 168);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.78 0.10 168);
+    border-radius: 3px;
+  }
 }

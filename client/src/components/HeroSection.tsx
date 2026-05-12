@@ -1,251 +1,208 @@
-// ============================================================
-// COMPONENT: HeroSection
-// Design: Neo-Constructivist Minimalism
-// - Asymmetric layout: left-heavy text, right geometric accent
-// - Typewriter effect for dynamic subtitle
-// - Mint green CTA with ripple effect
-// - Grid background with geometric decorations
-// ============================================================
-
+/*
+ * HeroSection — 沉浸式首页
+ * 设计：薄荷绿渐变背景，左侧文案+右侧插画，打字机动效
+ * 动效：淡入上移，打字机循环，按钮悬停
+ */
 import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
 
-const TYPEWRITER_TEXTS = [
-  "从0到1的产品思维者",
-];
-
-function useTypewriter(texts: string[], speed = 80, pause = 3000) {
-  const [displayText, setDisplayText] = useState("");
-  const [charIndex, setCharIndex] = useState(0);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showCursor, setShowCursor] = useState(true);
-
-  useEffect(() => {
-    const cursorInterval = setInterval(() => {
-      setShowCursor((v) => !v);
-    }, 500);
-    return () => clearInterval(cursorInterval);
-  }, []);
-
-  useEffect(() => {
-    const currentText = texts[0];
-    let timeout: ReturnType<typeof setTimeout>;
-
-    if (!isDeleting && charIndex < currentText.length) {
-      timeout = setTimeout(() => {
-        setDisplayText(currentText.slice(0, charIndex + 1));
-        setCharIndex((c) => c + 1);
-      }, speed);
-    } else if (!isDeleting && charIndex === currentText.length) {
-      timeout = setTimeout(() => setIsDeleting(true), pause);
-    } else if (isDeleting && charIndex > 0) {
-      timeout = setTimeout(() => {
-        setDisplayText(currentText.slice(0, charIndex - 1));
-        setCharIndex((c) => c - 1);
-      }, speed / 2);
-    } else if (isDeleting && charIndex === 0) {
-      setIsDeleting(false);
-    }
-
-    return () => clearTimeout(timeout);
-  }, [charIndex, isDeleting, texts, speed, pause]);
-
-  return { displayText, showCursor };
-}
+const TYPING_TEXTS = ["软件工程背景", "从0到1的产品思维者", "流程结构化专家", "数据驱动决策者"];
 
 export default function HeroSection() {
-  const { displayText, showCursor } = useTypewriter(TYPEWRITER_TEXTS);
-  const heroRef = useRef<HTMLDivElement>(null);
+  const [displayText, setDisplayText] = useState("");
+  const [textIndex, setTextIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // Typewriter effect
+  useEffect(() => {
+    const currentText = TYPING_TEXTS[textIndex];
+    let timeout: ReturnType<typeof setTimeout>;
+
+    if (!isDeleting && displayText === currentText) {
+      timeout = setTimeout(() => setIsDeleting(true), 2000);
+    } else if (isDeleting && displayText === "") {
+      setIsDeleting(false);
+      setTextIndex((prev) => (prev + 1) % TYPING_TEXTS.length);
+    } else {
+      const delta = isDeleting ? 60 : 100;
+      timeout = setTimeout(() => {
+        setDisplayText(
+          isDeleting
+            ? currentText.slice(0, displayText.length - 1)
+            : currentText.slice(0, displayText.length + 1)
+        );
+      }, delta);
+    }
+    return () => clearTimeout(timeout);
+  }, [displayText, isDeleting, textIndex]);
+
+  // Fade in on mount
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleScrollToAbout = () => {
-    const el = document.getElementById("about");
-    if (el) el.scrollIntoView({ behavior: "smooth" });
+    document.getElementById("about")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleScrollToPortfolio = () => {
-    const el = document.getElementById("portfolio");
-    if (el) el.scrollIntoView({ behavior: "smooth" });
+  const handleDownloadResume = () => {
+    // Create a link element to trigger download
+    const link = document.createElement("a");
+    link.href = "/manus-storage/resume_1e5fce82.pdf";
+    link.download = "朱倩萍-产品经理简历.pdf";
+    link.click();
   };
 
   return (
     <section
-      id="home"
-      ref={heroRef}
-      className="relative min-h-screen flex items-center overflow-hidden"
-      style={{ background: "#F8F9FA" }}
+      id="hero"
+      ref={sectionRef}
+      className="relative min-h-screen flex items-center overflow-hidden bg-hero-gradient"
     >
-      {/* Background image */}
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: `url(https://d2xsxph8kpxj0f.cloudfront.net/310519663649004837/c5HFNjEQeJeuyXQxYLzyx4/hero-bg-JxiQ3PRkyoBJ6BGSRcSHkN.webp)`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          opacity: 0.6,
-        }}
-      />
-
-      {/* Grid overlay */}
-      <div className="absolute inset-0 z-0 grid-bg opacity-50" />
-
-      {/* Geometric accent — top right */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1, delay: 0.5 }}
-        className="absolute top-20 right-12 lg:right-24 z-10 hidden lg:block"
-      >
-        <div className="relative w-48 h-48">
-          <div className="absolute inset-0 border border-[#C7F9CC]/60 rounded-sm" />
-          <div className="absolute inset-4 border border-[#C7F9CC]/40 rounded-sm" />
-          <div className="absolute inset-8 bg-[#C7F9CC]/20 rounded-sm" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-[#C7F9CC] rounded-full" />
-        </div>
-      </motion.div>
-
-      {/* Geometric accent — bottom left */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 1, delay: 0.8 }}
-        className="absolute bottom-24 left-8 z-10 hidden lg:block"
-      >
-        <div className="flex gap-2">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div
-              key={i}
-              className="w-1.5 h-1.5 rounded-full"
-              style={{
-                backgroundColor: i <= 3 ? "#C7F9CC" : "#C7F9CC40",
-              }}
-            />
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Large soft circle top-right */}
+        <div
+          className="absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full opacity-30"
+          style={{ background: "radial-gradient(circle, oklch(0.85 0.075 168) 0%, transparent 70%)" }}
+        />
+        {/* Small circle bottom-left */}
+        <div
+          className="absolute bottom-20 -left-20 w-[300px] h-[300px] rounded-full opacity-20"
+          style={{ background: "radial-gradient(circle, oklch(0.78 0.10 168) 0%, transparent 70%)" }}
+        />
+        {/* Dot grid pattern */}
+        <div className="absolute top-1/4 right-1/4 opacity-10">
+          {Array.from({ length: 6 }).map((_, row) => (
+            <div key={row} className="flex gap-4 mb-4">
+              {Array.from({ length: 6 }).map((_, col) => (
+                <div key={col} className="w-1.5 h-1.5 rounded-full bg-[oklch(0.60_0.13_168)]" />
+              ))}
+            </div>
           ))}
         </div>
-      </motion.div>
+        {/* Hero background image */}
+        <img
+          src="https://d2xsxph8kpxj0f.cloudfront.net/310519663649908096/XSkKeEYc9Cj3zgNTddVRfJ/hero_bg-FGbfY9D3AyvUbMkq3QioF9.webp"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-multiply"
+        />
+      </div>
 
-      {/* Main content */}
-      <div className="relative z-20 max-w-6xl mx-auto px-6 lg:px-8 pt-20 pb-16">
-        <div className="max-w-3xl">
-          {/* Label */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="flex items-center gap-3 mb-8"
+      <div className="relative z-10 max-w-6xl mx-auto px-6 py-24 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* Left: Text content */}
+          <div
+            className={`transition-all duration-700 ${
+              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+            }`}
           >
-            <div className="w-8 h-px bg-[#C7F9CC]" />
-            <span
-              className="text-xs font-medium tracking-[0.2em] text-gray-500 uppercase"
-              style={{ fontFamily: "'JetBrains Mono', monospace" }}
-            >
-              个人简介
-            </span>
-          </motion.div>
-
-          {/* Main title */}
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="text-[#1A1A1A] leading-none mb-4"
-            style={{
-              fontFamily: "'Syne', sans-serif",
-              fontSize: "clamp(3rem, 8vw, 6rem)",
-              fontWeight: 800,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            朱倩萍
-            <span className="block text-[#1A1A1A]/30 text-[0.55em] font-normal mt-1">
-              champ
-            </span>
-          </motion.h1>
-
-          {/* Typewriter subtitle */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="flex items-center gap-3 mb-10"
-          >
-            <div className="w-1 h-8 bg-[#C7F9CC]" />
-            <div
-              className="text-xl lg:text-2xl text-[#1A1A1A]/70 font-medium min-h-[2rem]"
-              style={{ fontFamily: "'DM Sans', sans-serif" }}
-            >
-              {displayText}
-              <span
-                className={`inline-block w-0.5 h-5 bg-[#52b788] ml-0.5 align-middle transition-opacity duration-100 ${
-                  showCursor ? "opacity-100" : "opacity-0"
-                }`}
-              />
+            {/* Tag */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[oklch(0.92_0.040_168)] text-[oklch(0.48_0.11_168)] text-sm font-medium mb-6">
+              <span className="w-2 h-2 rounded-full bg-[oklch(0.60_0.13_168)] animate-pulse" />
+              产品经理候选人
             </div>
-          </motion.div>
 
-          {/* Description */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="text-gray-500 text-base lg:text-lg leading-relaxed mb-10 max-w-xl"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
-          >
-            我的个人经历和成长故事。从软件工程专业出身，到 AI 研究院的用户洞察研究，再到传媒公司的 SOP 建设实践。
-            每一段经历都让我学会了如何将复杂流程结构化，用数据驱动决策，以产品思维解决真实问题。
-          </motion.p>
+            {/* Name */}
+            <h1 className="text-5xl lg:text-6xl font-bold text-[oklch(0.22_0.02_168)] mb-3 leading-tight">
+              朱倩萍
+            </h1>
+            <p className="font-display text-xl text-[oklch(0.55_0.04_168)] mb-4 tracking-wide">
+              Qianping Zhu
+            </p>
 
-          {/* CTA Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.7 }}
-            className="flex flex-wrap gap-4"
-          >
-            <button
-              onClick={handleScrollToAbout}
-              className="group relative overflow-hidden px-8 py-3.5 bg-[#C7F9CC] text-[#1A1A1A] font-semibold text-sm rounded-sm hover:bg-[#b7e4c7] transition-all duration-300 hover:shadow-lg hover:shadow-[#C7F9CC]/30 hover:-translate-y-0.5"
-              style={{ fontFamily: "'DM Sans', sans-serif" }}
-            >
-              <span className="relative z-10 flex items-center gap-2">
-                探索我的过往经历
-                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
+            {/* Typewriter */}
+            <div className="h-10 flex items-center mb-8">
+              <span className="text-2xl font-semibold text-[oklch(0.60_0.13_168)] typewriter-cursor">
+                {displayText}
               </span>
-            </button>
+            </div>
 
-            <button
-              onClick={handleScrollToPortfolio}
-              className="px-8 py-3.5 border border-[#1A1A1A]/20 text-[#1A1A1A] font-medium text-sm rounded-sm hover:border-[#C7F9CC] hover:bg-[#C7F9CC]/10 transition-all duration-300"
-              style={{ fontFamily: "'DM Sans', sans-serif" }}
-            >
-              查看作品集
-            </button>
-          </motion.div>
+            {/* Introduction */}
+            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-[oklch(0.90_0.020_168)] card-mint-border mb-8 shadow-sm">
+              <p className="text-[oklch(0.35_0.05_168)] leading-relaxed text-[15px]">
+                👋 嗨，我是倩萍，一个喜欢把模糊需求"搓"成清晰计划的人。从软件工程专业出身，到 AI 研究院的用户洞察研究，再到传媒公司的 SOP 建设实践。每一段经历都让我学会了如何将复杂流程结构化，用数据驱动决策，以产品思维解决真实问题。
+              </p>
+              <p className="mt-4 text-[oklch(0.48_0.11_168)] font-semibold text-sm italic">
+                「习惯把需求梳理清楚、把进度管到位、把交付做完整」—— 这是我的工作信条。
+              </p>
+            </div>
 
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap gap-4">
+              <button
+                onClick={handleScrollToAbout}
+                className="group flex items-center gap-2 px-6 py-3 rounded-full bg-[oklch(0.60_0.13_168)] text-white font-medium text-sm hover:bg-[oklch(0.55_0.13_168)] transition-all duration-200 shadow-lg shadow-[oklch(0.60_0.13_168)/0.3] hover:shadow-xl hover:shadow-[oklch(0.60_0.13_168)/0.4] hover:-translate-y-0.5"
+              >
+                探索我的个人经历
+                <span className="group-hover:translate-x-1 transition-transform">→</span>
+              </button>
+              <a
+                href="/manus-storage/resume_1e5fce82.pdf"
+                download="朱倩萍-产品经理简历.pdf"
+                className="flex items-center gap-2 px-6 py-3 rounded-full border-2 border-[oklch(0.60_0.13_168)] text-[oklch(0.48_0.11_168)] font-medium text-sm hover:bg-[oklch(0.96_0.020_168)] transition-all duration-200 hover:-translate-y-0.5"
+              >
+                下载简历
+                <span>↓</span>
+              </a>
+            </div>
 
+            {/* Stats row */}
+            <div className="flex gap-8 mt-10 pt-8 border-t border-[oklch(0.90_0.020_168)]">
+              {[
+                { value: "2+", label: "年实习经验" },
+                { value: "95%", label: "内容准时发布率" },
+                { value: "30%", label: "学员报名率提升" },
+              ].map((stat) => (
+                <div key={stat.label} className="text-center">
+                  <div className="text-2xl font-bold text-[oklch(0.60_0.13_168)] font-display">
+                    {stat.value}
+                  </div>
+                  <div className="text-xs text-[oklch(0.55_0.04_168)] mt-0.5">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: Portrait illustration */}
+          <div
+            className={`flex justify-center lg:justify-end transition-all duration-700 delay-200 ${
+              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+            }`}
+          >
+            <div className="relative">
+              {/* Decorative ring */}
+              <div className="absolute inset-0 rounded-full border-2 border-dashed border-[oklch(0.78_0.10_168)] scale-110 animate-[spin_30s_linear_infinite] opacity-40" />
+              <div className="absolute inset-0 rounded-full border border-[oklch(0.85_0.075_168)] scale-125 opacity-30" />
+              {/* Portrait */}
+              <div className="relative w-64 h-64 lg:w-80 lg:h-80 rounded-full overflow-hidden shadow-2xl shadow-[oklch(0.60_0.13_168)/0.2]">
+                <img
+                  src="https://d2xsxph8kpxj0f.cloudfront.net/310519663649908096/XSkKeEYc9Cj3zgNTddVRfJ/hero_portrait-hh4rEqDNeQQVGbn5d4v6Ef.webp"
+                  alt="朱倩萍"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              {/* Floating badge */}
+              <div className="absolute -bottom-2 -right-2 bg-white rounded-2xl px-4 py-2 shadow-lg border border-[oklch(0.90_0.020_168)]">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  <span className="text-xs font-medium text-[oklch(0.35_0.05_168)]">开放机会</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Scroll indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2"
-      >
-        <span
-          className="text-xs text-gray-400 tracking-widest uppercase"
-          style={{ fontFamily: "'JetBrains Mono', monospace" }}
-        >
-          Scroll
-        </span>
-        <motion.div
-          animate={{ y: [0, 6, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-          className="w-px h-8 bg-gradient-to-b from-gray-400 to-transparent"
-        />
-      </motion.div>
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-60">
+        <span className="text-xs text-[oklch(0.55_0.04_168)] font-display">向下探索</span>
+        <div className="w-5 h-8 rounded-full border-2 border-[oklch(0.78_0.10_168)] flex justify-center pt-1.5">
+          <div className="w-1 h-2 rounded-full bg-[oklch(0.60_0.13_168)] animate-bounce" />
+        </div>
+      </div>
     </section>
   );
 }

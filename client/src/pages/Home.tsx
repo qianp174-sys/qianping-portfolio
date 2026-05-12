@@ -1,26 +1,23 @@
-// ============================================================
-// PAGE: Home — 朱倩萍个人品牌网站主页
-// Design: Neo-Constructivist Minimalism
-// Sections: Hero → About → Portfolio → SOP → Contact
-// ============================================================
-
+/*
+ * Home — 主页面，整合所有 Section
+ * 设计：清新薄荷极简主义
+ * 结构：Navbar + Hero + About + Skills + Portfolio + Contact
+ */
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import AboutSection from "@/components/AboutSection";
 import SkillsSection from "@/components/SkillsSection";
 import PortfolioSection from "@/components/PortfolioSection";
-import SOPSection from "@/components/SOPSection";
 import ContactSection from "@/components/ContactSection";
 
 export default function Home() {
   return (
-    <div className="min-h-screen" style={{ background: "#F8F9FA" }}>
+    <div className="min-h-screen">
       <Navbar />
       <HeroSection />
       <AboutSection />
       <SkillsSection />
       <PortfolioSection />
-      <SOPSection />
       <ContactSection />
     </div>
   );
